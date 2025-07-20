@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>2FA auth</title>
+</head>
+<body>
+    <p>Code send</p>
+    
+    <form method="POST" action="/verify">
+        <input type="hidden" name="username" value="{{.Username}}">
+        <div>
+            <label>Verify code:</label>
+            <input type="text" name="code" required>
+        </div>
+        <button type="submit">sumbit</button>
+    </form>
+    
+    {{if .Error}}
+        <p style="color:red">{{.Error}}</p>
+    {{end}}
+</body>
+</html>

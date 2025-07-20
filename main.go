@@ -1,20 +1,31 @@
 package main
 
 import (
-	"context"
 	"log"
 
-	config "2FA/internal/config"
-	telegram "2FA/internal/telegram"
+	"2FA/internal/config"
+	postgres "2FA/internal/database"
+	"2FA/internal/handlers"
+	"2FA/internal/server"
+	"2FA/internal/services"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
 	cfg := config.Load()
-	bot, err := telegram.BotCreate(cfg.TelegramBotToken, nil)
+
+	db, err := postgres.NewDatabase(cfg.DBURL)
 	if err != nil {
-		log.Fatalf("Failed to create Telegram bot: %v", err)
+		log.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go bot.Start(ctx)
+	defer db.Close()
+
+	authService := services.NewAuthService(postgres.NewUserRepository(db))
+	authHandler := handlers.NewAuthHandler(*authService)
+
+	srv := server.NewServer(authHandler)
+	if err := srv.Run(cfg.ServerPort); err != nil {
+		log.Fatal(err)
+	}
 }

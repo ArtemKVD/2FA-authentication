@@ -1,15 +1,25 @@
 package services
 
 import (
-	models "2FA/internal/models"
-	"context"
+	postgres "2FA/internal/database"
+	"errors"
 )
 
-type AuthService interface {
-	GenerateCode(telegramID int) (string, error)
-	VerifCode(telegramID int, code string) (bool, error)
+type AuthService struct {
+	userRepo *postgres.UserRepository
 }
 
-type UserService interface {
-	GetAuthByID(ctx context.Context, telegramID int) (*models.TelegramAuth, error)
+func NewAuthService(userRepo *postgres.UserRepository) *AuthService {
+	return &AuthService{userRepo: userRepo}
+}
+
+func (s *AuthService) GenerateCode(telegramID int64) (string, error) {
+	return "123456", nil
+}
+
+func (s *AuthService) VerifyCode(telegramID int64, code string) (bool, error) {
+	if code != "123456" {
+		return false, errors.New("invalid code")
+	}
+	return true, nil
 }
