@@ -54,16 +54,13 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	if len(password) < 8 {
-		c.HTML(http.StatusOK, "login.html", gin.H{
-			"Error": "Incorrect password",
-		})
+	valid, err := h.authService.DataVerify(username, password)
+	if !valid || err != nil {
+		c.HTML(http.StatusOK, "login.html", gin.H{"Error": "Invalid credentials"})
 		return
 	}
-	//check password later
-	c.HTML(http.StatusOK, "verify.html", gin.H{
-		"Username": username,
-	})
+
+	c.HTML(http.StatusOK, "verify.html", gin.H{"Username": username})
 }
 
 func (h *AuthHandler) HandleVerify(c *gin.Context) {
