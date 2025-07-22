@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"2FA/internal/services"
@@ -55,12 +56,24 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
 	valid, err := h.authService.DataVerify(username, password)
-	if !valid || err != nil {
-		c.HTML(http.StatusOK, "login.html", gin.H{"Error": "Invalid credentials"})
+	if err != nil {
+		log.Printf("Login error: %v", err)
+		c.HTML(http.StatusOK, "login.html", gin.H{
+			"Error": "Invalid username or password",
+		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "verify.html", gin.H{"Username": username})
+	if !valid {
+		c.HTML(http.StatusOK, "login.html", gin.H{
+			"Error": "Invalid username or password",
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "verify.html", gin.H{
+		"Username": username,
+	})
 }
 
 func (h *AuthHandler) HandleVerify(c *gin.Context) {

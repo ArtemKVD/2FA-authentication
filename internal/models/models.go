@@ -5,7 +5,7 @@ import "time"
 type User struct {
 	ID         int64  `db:"id"`
 	Username   string `db:"username"`
-	Password   string `db:"password"`
+	Password   string `db:"password_hash"`
 	TelegramID int64  `db:"telegram_id"`
 	ChatID     int64  `db:"chat_id"`
 }

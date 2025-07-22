@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"errors"
+	"log"
 	"time"
 )
 
@@ -62,10 +63,12 @@ func (s *AuthService) VerifyCode(userID int64, code string) (bool, error) {
 }
 
 func (s *AuthService) DataVerify(username, password string) (bool, error) {
+
 	user, err := s.userRepo.GetByUsername(context.Background(), username)
 	if err != nil {
 		return false, err
 	}
+	log.Printf("User login")
 
 	if user.Password != hashPassword(password) {
 		return false, errors.New("invalid password")

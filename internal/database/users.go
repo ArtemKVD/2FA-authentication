@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -32,12 +31,12 @@ func (db *Database) Close() error {
 }
 
 type UserRepository struct {
-	database *Database
+	db *sqlx.DB
 }
 
-func NewUserRepository(db *Database) *UserRepository {
+func NewUserRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{
-		database: db,
+		db: db,
 	}
 }
 
@@ -45,23 +44,27 @@ func (r *UserRepository) GetChatID(userID int64) (int64, error) {
 	const query = `SELECT chat_id FROM users WHERE id = $1`
 
 	var chatID int64
-	err := r.database.conn.Get(&chatID, query, userID)
+	err := r.db.Get(&chatID, query, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("user not found")
+			return 0, err
 		}
-		return 0, fmt.Errorf("failed to get chat_id: %w", err)
+		return 0, err
 	}
 
 	return chatID, nil
 }
-
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `SELECT id, username, password_hash, telegram_id, chat_id FROM users WHERE username = $1`
 	var user models.User
-	err := r.database.conn.GetContext(ctx, &user, query, username)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
+
+	err := r.db.GetContext(ctx, &user, query, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, err
 	}
-	return &user, err
+
+	return &user, nil
 }

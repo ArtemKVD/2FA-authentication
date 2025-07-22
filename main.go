@@ -1,42 +1,46 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
 	"2FA/internal/config"
-	postgres "2FA/internal/database"
+	database "2FA/internal/database"
 	"2FA/internal/handlers"
 	"2FA/internal/server"
 	"2FA/internal/services"
 	"2FA/internal/telegram"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 func main() {
+
 	cfg := config.Load()
 
 	db, err := sqlx.Connect("postgres", cfg.DBURL)
 	if err != nil {
-		log.Fatalf("connect error: %v", err)
+		log.Println("fail connect db", err)
 	}
 	defer db.Close()
 
-	log.Println("postgres connect succes")
+	log.Println("postgres connected")
 
-	userRepo := postgres.NewUserRepository(db)
-	codeRepo := postgres.NewCodeRepository(db)
+	codeRepo := database.NewCodeRepository(db)
+	userRepo := database.NewUserRepository(db)
 
 	authService := services.NewAuthService(userRepo, codeRepo)
-	authHandler := handlers.NewAuthHandler(*authService)
+
 	bot, err := telegram.BotCreate(cfg.TelegramBotToken, *authService)
 	if err != nil {
-		log.Fatalf("Failed to create Telegram bot: %v", err)
+		log.Fatalf("failed create bot: %v", err)
 	}
+	log.Println("Authorized Telegram bot", bot.Api.Self.UserName)
 
-	log.Printf("Authorized Telegram bot")
+	authHandler := handlers.NewAuthHandler(*authService)
 
 	router := server.NewServer(authHandler)
 
@@ -45,5 +49,15 @@ func main() {
 		Handler: router,
 	}
 
-	log.Println("Server exited properly")
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+	log.Println("server started on port", cfg.ServerPort)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
 }
