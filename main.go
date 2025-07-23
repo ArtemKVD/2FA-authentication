@@ -31,10 +31,9 @@ func main() {
 
 	codeRepo := database.NewCodeRepository(db)
 	userRepo := database.NewUserRepository(db)
+	bot, err := telegram.BotCreate(cfg.TelegramBotToken)
+	authService := services.NewAuthService(userRepo, codeRepo, bot)
 
-	authService := services.NewAuthService(userRepo, codeRepo)
-
-	bot, err := telegram.BotCreate(cfg.TelegramBotToken, *authService)
 	if err != nil {
 		log.Fatalf("failed create bot: %v", err)
 	}

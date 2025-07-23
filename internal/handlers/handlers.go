@@ -71,6 +71,15 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
+	err = h.authService.SendAuthCode(username)
+	if err != nil {
+		log.Printf("Failed to send auth code: %v", err)
+		c.HTML(http.StatusOK, "login.html", gin.H{
+			"Error": "Failed to send verification code",
+		})
+		return
+	}
+
 	c.HTML(http.StatusOK, "verify.html", gin.H{
 		"Username": username,
 	})
@@ -79,15 +88,27 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 func (h *AuthHandler) HandleVerify(c *gin.Context) {
 	username := c.PostForm("username")
 	code := c.PostForm("code")
-	//send code later
-	//check code later
-	if code == "1" {
-		c.String(http.StatusOK, "succes join: %s", username)
+
+	valid, err := h.authService.VerifyCode(username, code)
+	log.Printf(code)
+	if err != nil {
+		log.Printf("Ошибка при проверке кода: %v", err)
+		c.HTML(http.StatusOK, "verify.html", gin.H{
+			"Username": username,
+			"Error":    "error check code",
+		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "verify.html", gin.H{
+	if !valid {
+		c.HTML(http.StatusOK, "verify.html", gin.H{
+			"Username": username,
+			"Error":    "wrong code",
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "success.html", gin.H{
 		"Username": username,
-		"Error":    "Неверный код подтверждения",
 	})
 }

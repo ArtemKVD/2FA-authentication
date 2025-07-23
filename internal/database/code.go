@@ -1,6 +1,9 @@
 package postgres
 
 import (
+	"database/sql"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -31,4 +34,30 @@ func (r *CodeRepository) GetCode(userID int64) (string, time.Time, error) {
 	query := `SELECT code, expires_at FROM auth_codes WHERE user_id = $1`
 	err := r.db.QueryRow(query, userID).Scan(&code, &expiresAt)
 	return code, expiresAt, err
+}
+
+func (r *CodeRepository) VerifyCode(userID int64, code string) (bool, error) {
+	var storedCode string
+	var expiresAt time.Time
+
+	err := r.db.QueryRow(
+		`SELECT code, expires_at FROM auth_codes WHERE user_id = $1`,
+		userID,
+	).Scan(&storedCode, &expiresAt)
+
+	log.Printf(storedCode)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("код не найден")
+		}
+		return false, fmt.Errorf("ошибка базы данных: %w", err)
+	}
+
+	if time.Now().After(expiresAt) {
+		return false, fmt.Errorf("код просрочен")
+	}
+
+	log.Printf("user insert %v postgres get %v", code, storedCode)
+	return code == storedCode, nil
 }
