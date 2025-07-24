@@ -10,6 +10,12 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	hashCost = 16
 )
 
 type TelegramBotInterface interface {
@@ -77,8 +83,11 @@ func (s *AuthService) DataVerify(username, password string) (bool, error) {
 		return false, err
 	}
 	log.Printf("User login")
-
-	if user.Password != hashPassword(password) {
+	passwordcheck, err := hashPassword(password)
+	if err != nil {
+		log.Printf("hash password error")
+	}
+	if user.Password != passwordcheck {
 		return false, errors.New("invalid password")
 	}
 
@@ -108,7 +117,7 @@ func (s *AuthService) SendAuthCode(username string) error {
 	return s.telegrambot.SendAuthCode(chatID, code)
 }
 
-func hashPassword(password string) string {
-	//later
-	return password
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
+	return string(bytes), err
 }
