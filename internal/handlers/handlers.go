@@ -107,8 +107,29 @@ func (h *AuthHandler) HandleVerify(c *gin.Context) {
 		})
 		return
 	}
+	user, err := h.authService.GetByUsername(username)
+	if err != nil {
+		log.Printf("error get user by username")
+	}
+
+	token, err := h.authService.GenerateJWT(user.ID)
+	if err != nil {
+		c.HTML(http.StatusOK, "verify.html", gin.H{
+			"Username": username,
+			"Error":    "error create token",
+		})
+		return
+	}
+
+	c.SetCookie("jwt", token, int(h.authService.JwtExpiration.Seconds()), "/", "", false, true)
 
 	c.HTML(http.StatusOK, "success.html", gin.H{
 		"Username": username,
+	})
+}
+
+func (h *AuthHandler) HandleSuccess(c *gin.Context) {
+	c.HTML(http.StatusOK, "success.html", gin.H{
+		"Username": "welcome",
 	})
 }

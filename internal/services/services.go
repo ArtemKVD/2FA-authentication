@@ -1,6 +1,7 @@
 package services
 
 import (
+	"2FA/internal/auth"
 	postgres "2FA/internal/database"
 	"2FA/internal/models"
 	"context"
@@ -27,16 +28,20 @@ func (s *AuthService) GetByUsername(username string) (*models.User, error) {
 }
 
 type AuthService struct {
-	userRepo    *postgres.UserRepository
-	codeRepo    *postgres.CodeRepository
-	telegrambot TelegramBotInterface
+	userRepo      *postgres.UserRepository
+	codeRepo      *postgres.CodeRepository
+	telegrambot   TelegramBotInterface
+	jwtSecret     string
+	JwtExpiration time.Duration
 }
 
-func NewAuthService(userRepo *postgres.UserRepository, codeRepo *postgres.CodeRepository, telegrambot TelegramBotInterface) *AuthService {
+func NewAuthService(userRepo *postgres.UserRepository, codeRepo *postgres.CodeRepository, telegrambot TelegramBotInterface, jwtSecret string, jwtExpiration time.Duration) *AuthService {
 	return &AuthService{
-		userRepo:    userRepo,
-		codeRepo:    codeRepo,
-		telegrambot: telegrambot,
+		userRepo:      userRepo,
+		codeRepo:      codeRepo,
+		telegrambot:   telegrambot,
+		jwtSecret:     jwtSecret,
+		JwtExpiration: jwtExpiration,
 	}
 }
 func generateRandomCode(length int) (string, error) {
@@ -120,4 +125,8 @@ func (s *AuthService) SendAuthCode(username string) error {
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
 	return string(bytes), err
+}
+
+func (s *AuthService) GenerateJWT(userID int64) (string, error) {
+	return auth.GenerateToken(userID, s.jwtSecret, s.JwtExpiration)
 }

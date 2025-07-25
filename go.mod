@@ -9,7 +9,10 @@ require (
 	github.com/lib/pq v1.10.9
 )
 
-require github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
+require (
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.3 // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

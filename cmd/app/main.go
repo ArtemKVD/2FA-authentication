@@ -32,16 +32,21 @@ func main() {
 	codeRepo := database.NewCodeRepository(db)
 	userRepo := database.NewUserRepository(db)
 	bot, err := telegram.BotCreate(cfg.TelegramBotToken)
-	authService := services.NewAuthService(userRepo, codeRepo, bot)
-
 	if err != nil {
 		log.Fatalf("failed create bot: %v", err)
 	}
 	log.Println("Authorized Telegram bot", bot.Api.Self.UserName)
 
-	authHandler := handlers.NewAuthHandler(*authService)
+	authService := services.NewAuthService(
+		userRepo,
+		codeRepo,
+		bot,
+		cfg.JWTSecretKey,
+		cfg.JWTExpiration,
+	)
 
-	router := server.NewServer(authHandler)
+	authHandler := handlers.NewAuthHandler(*authService)
+	router := server.NewServer(authHandler, cfg.JWTSecretKey)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,
