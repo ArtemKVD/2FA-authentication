@@ -1,13 +1,13 @@
 package server
 
 import (
-	"2FA/internal/auth"
 	"2FA/internal/handlers"
+	"2FA/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewServer(authHandler *handlers.AuthHandler, jwtSecret string) *gin.Engine {
+func NewServer(authHandler *handlers.AuthHandler, authService *services.AuthService, jwtSecret string, jwtRefresh string) *gin.Engine {
 	router := gin.Default()
 	router.LoadHTMLGlob("web/templates/*")
 
@@ -15,7 +15,7 @@ func NewServer(authHandler *handlers.AuthHandler, jwtSecret string) *gin.Engine 
 	router.POST("/login", authHandler.HandleLogin)
 
 	private := router.Group("/")
-	private.Use(auth.JWTAuth(jwtSecret))
+	private.Use(handlers.JWTAuth(authService))
 	{
 		private.POST("/verify", authHandler.HandleVerify)
 	}

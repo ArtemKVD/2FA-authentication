@@ -1,9 +1,6 @@
-package postgres
+package database
 
 import (
-	"database/sql"
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -45,19 +42,12 @@ func (r *CodeRepository) VerifyCode(userID int64, code string) (bool, error) {
 		userID,
 	).Scan(&storedCode, &expiresAt)
 
-	log.Printf(storedCode)
-
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, fmt.Errorf("код не найден")
-		}
-		return false, fmt.Errorf("ошибка базы данных: %w", err)
+		return false, err
 	}
 
 	if time.Now().After(expiresAt) {
-		return false, fmt.Errorf("код просрочен")
+		return false, err
 	}
-
-	log.Printf("user insert %v postgres get %v", code, storedCode)
 	return code == storedCode, nil
 }

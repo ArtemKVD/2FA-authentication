@@ -31,6 +31,7 @@ func main() {
 
 	codeRepo := database.NewCodeRepository(db)
 	userRepo := database.NewUserRepository(db)
+	RefreshTokenRepo := database.NewRefreshTokenRepo(db)
 	bot, err := telegram.BotCreate(cfg.TelegramBotToken)
 	if err != nil {
 		log.Fatalf("failed create bot: %v", err)
@@ -43,10 +44,13 @@ func main() {
 		bot,
 		cfg.JWTSecretKey,
 		cfg.JWTExpiration,
+		cfg.JWTRefreshSecret,
+		cfg.JWTRefreshTokenExpiration,
+		RefreshTokenRepo,
 	)
 
 	authHandler := handlers.NewAuthHandler(*authService)
-	router := server.NewServer(authHandler, cfg.JWTSecretKey)
+	router := server.NewServer(authHandler, authService, cfg.JWTSecretKey, cfg.JWTRefreshSecret)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.ServerPort,

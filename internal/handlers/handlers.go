@@ -3,7 +3,10 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"time"
 
+	"2FA/internal/auth"
+	"2FA/internal/models"
 	"2FA/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -112,16 +115,15 @@ func (h *AuthHandler) HandleVerify(c *gin.Context) {
 		log.Printf("error get user by username")
 	}
 
-	token, err := h.authService.GenerateJWT(user.ID)
+	tokenPair, err := h.authService.GenerateTokenPair(user.ID)
 	if err != nil {
-		c.HTML(http.StatusOK, "verify.html", gin.H{
-			"Username": username,
-			"Error":    "error create token",
+		c.HTML(http.StatusInternalServerError, "verify.html", gin.H{
+			"Error": "Failed to generate tokens",
 		})
 		return
 	}
 
-	c.SetCookie("jwt", token, int(h.authService.JwtExpiration.Seconds()), "/", "", false, true)
+	setTokenCookies(c, tokenPair, h.authService.JwtExpiration, h.authService.JwtRefreshExpiration)
 
 	c.HTML(http.StatusOK, "success.html", gin.H{
 		"Username": username,
@@ -132,4 +134,41 @@ func (h *AuthHandler) HandleSuccess(c *gin.Context) {
 	c.HTML(http.StatusOK, "success.html", gin.H{
 		"Username": "welcome",
 	})
+}
+
+func setTokenCookies(c *gin.Context, pair *models.TokenPair, accessExpiry, refreshExpiry time.Duration) {
+	c.SetCookie("access_token", pair.AccessToken, int(accessExpiry.Seconds()), "/", "", false, true)
+	c.SetCookie("refresh_token", pair.RefreshToken, int(refreshExpiry.Seconds()), "/", "", false, true)
+}
+
+func JWTAuth(authService *services.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		accessToken, err := c.Cookie("access_token")
+		if err == nil && accessToken != "" {
+			claims, err := auth.ParseToken(accessToken, authService.JwtSecret)
+			if err == nil {
+				c.Set("user_id", claims.UserID)
+				c.Next()
+				return
+			}
+		}
+
+		refreshToken, err := c.Cookie("refresh_token")
+		if err != nil {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+
+		newPair, err := authService.RefreshTokens(refreshToken)
+		if err != nil {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+
+		setTokenCookies(c, newPair, authService.JwtExpiration, authService.JwtRefreshExpiration)
+		c.Set("user_id", newPair.UserID)
+		c.Next()
+	}
 }
