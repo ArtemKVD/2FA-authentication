@@ -9,10 +9,10 @@ type Config struct {
 	DBURL                     string
 	TelegramBotToken          string
 	ServerPort                string
-	JWTSecretKey              string        `mapstructure:"JWT_SECRET_KEY"`
-	JWTExpiration             time.Duration `mapstructure:"JWT_EXPIRATION"`
-	JWTRefreshSecret          string        `mapstructure:"JWTREFRESH_SECRET"`
-	JWTRefreshTokenExpiration time.Duration `mapstructure:"JWTREFRESH_TOKEN_EXPIRATION"`
+	JWTSecretKey              string
+	JWTExpiration             time.Duration
+	JWTRefreshSecret          string
+	JWTRefreshTokenExpiration time.Duration
 }
 
 func Load() *Config {

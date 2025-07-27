@@ -68,3 +68,19 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 
 	return &user, nil
 }
+
+func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
+	query := `SELECT id, username, password_hash, telegram_id, chat_id 
+              FROM users WHERE id = $1`
+
+	var user models.User
+	err := r.db.GetContext(ctx, &user, query, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}

@@ -93,9 +93,8 @@ func (h *AuthHandler) HandleVerify(c *gin.Context) {
 	code := c.PostForm("code")
 
 	valid, err := h.authService.VerifyCode(username, code)
-	log.Printf(code)
 	if err != nil {
-		log.Printf("Ошибка при проверке кода: %v", err)
+		log.Printf("error check code: %v", err)
 		c.HTML(http.StatusOK, "verify.html", gin.H{
 			"Username": username,
 			"Error":    "error check code",
@@ -110,40 +109,65 @@ func (h *AuthHandler) HandleVerify(c *gin.Context) {
 		})
 		return
 	}
+
 	user, err := h.authService.GetByUsername(username)
 	if err != nil {
-		log.Printf("error get user by username")
+		log.Printf("error get user by username: %v", err)
+		c.HTML(http.StatusInternalServerError, "verify.html", gin.H{
+			"Error": "Failed to get user",
+		})
+		return
 	}
 
 	tokenPair, err := h.authService.GenerateTokenPair(user.ID)
 	if err != nil {
+		log.Printf("error generating token pair: %v", err)
 		c.HTML(http.StatusInternalServerError, "verify.html", gin.H{
 			"Error": "Failed to generate tokens",
 		})
 		return
 	}
-
 	setTokenCookies(c, tokenPair, h.authService.JwtExpiration, h.authService.JwtRefreshExpiration)
-
+	c.Set("user_id", user.ID)
 	c.HTML(http.StatusOK, "success.html", gin.H{
-		"Username": username,
+		"Username": user.Username,
 	})
 }
 
 func (h *AuthHandler) HandleSuccess(c *gin.Context) {
+	userIDg, exists := c.Get("user_id")
+	if !exists {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	userID, ok := userIDg.(int64)
+	if !ok {
+		log.Printf("Invalid userID type: %T", userID)
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	user, err := h.authService.GetByID(userID)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
 	c.HTML(http.StatusOK, "success.html", gin.H{
-		"Username": "welcome",
+		"Username": user.Username,
 	})
 }
 
 func setTokenCookies(c *gin.Context, pair *models.TokenPair, accessExpiry, refreshExpiry time.Duration) {
-	c.SetCookie("access_token", pair.AccessToken, int(accessExpiry.Seconds()), "/", "", false, true)
-	c.SetCookie("refresh_token", pair.RefreshToken, int(refreshExpiry.Seconds()), "/", "", false, true)
+	c.SetCookie("access_token", pair.AccessToken, int(accessExpiry.Seconds()), "/", "localhost", false, true)
+	c.SetCookie("refresh_token", pair.RefreshToken, int(refreshExpiry.Seconds()), "/", "localhost", false, true)
 }
 
 func JWTAuth(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		accessToken, err := c.Cookie("access_token")
+
 		if err == nil && accessToken != "" {
 			claims, err := auth.ParseToken(accessToken, authService.JwtSecret)
 			if err == nil {
@@ -162,6 +186,7 @@ func JWTAuth(authService *services.AuthService) gin.HandlerFunc {
 
 		newPair, err := authService.RefreshTokens(refreshToken)
 		if err != nil {
+			log.Println("Refresh token failed, redirecting to login")
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
 			return

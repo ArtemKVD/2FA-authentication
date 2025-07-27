@@ -13,11 +13,12 @@ func NewServer(authHandler *handlers.AuthHandler, authService *services.AuthServ
 
 	router.GET("/login", authHandler.ShowLoginPage)
 	router.POST("/login", authHandler.HandleLogin)
+	router.POST("/verify", authHandler.HandleVerify)
 
 	private := router.Group("/")
 	private.Use(handlers.JWTAuth(authService))
 	{
-		private.POST("/verify", authHandler.HandleVerify)
+		private.GET("/success", authHandler.HandleSuccess)
 	}
 
 	return router

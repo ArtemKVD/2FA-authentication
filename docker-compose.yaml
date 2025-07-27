@@ -1,0 +1,37 @@
+volumes:
+  postgres_data:
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - DB_URL=postgres://postgres:admin@db:5432/2fa?sslmode=disable
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-default_telegram_token}
+      - JWT_SECRET=${JWT_SECRETKEY:-default_jwt_secret}
+      - REFRESH_SECRET=${JWTREFRESH_SECRET:-default_refresh_secret}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./web/templates:/app/web/templates
+      - ./config:/app/config
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: 2fa
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d 2fa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"

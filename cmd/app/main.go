@@ -22,9 +22,10 @@ func main() {
 	cfg := config.Load()
 
 	db, err := sqlx.Connect("postgres", cfg.DBURL)
-	if err != nil {
-		log.Println("fail connect db", err)
+	if err == nil {
+		log.Printf("error connct db")
 	}
+
 	defer db.Close()
 
 	log.Println("postgres connected")

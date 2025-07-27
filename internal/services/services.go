@@ -21,6 +21,10 @@ func (s *AuthService) GetByUsername(username string) (*models.User, error) {
 	return s.userRepo.GetByUsername(context.Background(), username)
 }
 
+func (s *AuthService) GetByID(id int64) (*models.User, error) {
+	return s.userRepo.GetByID(context.Background(), id)
+}
+
 type AuthService struct {
 	userRepo             *postgres.UserRepository
 	codeRepo             *postgres.CodeRepository
