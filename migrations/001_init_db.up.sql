@@ -10,7 +10,8 @@ CREATE TABLE users (
 CREATE TABLE auth_codes (
     user_id BIGINT PRIMARY KEY REFERENCES users(id),
     code VARCHAR(10) NOT NULL,
-    expires_at TIMESTAMP NOT NULL
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE refresh_tokens (
