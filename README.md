@@ -1,4 +1,4 @@
-Two-Factor Authentication System with Telegram Integration
+  Two-Factor Authentication System with Telegram Integration
 
 Technology Stack
 
@@ -30,7 +30,7 @@ After logging in, the user is issued a JWT token
 
 ------------------------------------------------------------------------------------
 
-Система двухфакторной аутентификации с интенграцией telegram
+  Система двухфакторной аутентификации с интеграцией telegram
 
 Стек технологий:
 
